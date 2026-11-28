@@ -193,6 +193,7 @@ h2{font-size:19px;font-weight:850;margin:0}
 .chipsel{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .chipsel button{border:0;background:#fff;border-radius:12px;padding:8px 11px;font-weight:700;font-size:13px;cursor:pointer}
 .chipsel button.on{background:var(--org);color:#fff}
+.isq{width:100%;box-sizing:border-box;border:0;background:#F4F1EC;border-radius:12px;padding:11px 14px;font:700 15px P,system-ui;color:var(--ink);margin:10px 0 4px;outline:none}
 .mrow{display:flex;align-items:center;gap:6px;padding:9px 0;border-top:1px solid var(--line)}
 .mrow .nm{flex:1;font-weight:700;font-size:14.5px}
 .tg{border:0;border-radius:10px;padding:8px 0;width:52px;font-size:12px;font-weight:800;background:#F4F1EC;color:#B9AA9A;cursor:pointer}
@@ -434,7 +435,7 @@ function begin(practice){
    <div class="tbar"><i id="tb"></i></div><div class="sub" id="tl" style="text-align:right;font-weight:700;margin-top:4px">30초</div><div class="field" id="field"></div>${practice?'<div class="sub" style="text-align:center;margin-top:10px">연습 모드 · 오늘 기회를 다 써서 기록은 남지 않아요</div>':''}`;
   holes=[];const f=$('field');
   for(let i=0;i<9;i++){const h=document.createElement('div');h.className='hole';h.innerHTML='<div class="snow"></div><div class="pit"></div><div class="mask"></div>';f.appendChild(h);holes.push({el:h,mask:h.querySelector('.mask'),type:null,timer:0});h.addEventListener('pointerdown',e=>{e.preventDefault();tap(i)})}
-  st={score:0,combo:0,maxc:0,car:0,hat:0,rab:0,t0:0,run:false,practice};
+  st={score:0,combo:0,maxc:0,car:0,hat:0,rab:0,t0:0,run:false,practice,lv:0,maxlv:0};
   $('pager').classList.add('lock');$('nav').classList.add('lock');
   const c=$('count');let n=3;c.textContent=n;c.classList.add('on');
   const iv=setInterval(()=>{n--;if(n>0)c.textContent=n;else{clearInterval(iv);c.classList.remove('on');st.run=true;st.t0=performance.now();spawnT=0;raf=requestAnimationFrame(loop)}},700);
@@ -447,22 +448,26 @@ function loop(now){
   if(left<=0)return end();
   raf=requestAnimationFrame(loop);
 }
+/* 숨은 하드 모드: 콤보 10·20·30마다 몰래 한 단계씩 어려워지고, 놓치거나 토끼를 깨우면 한 단계 내려가요.
+   나오는 간격은 그대로 두고 '보이는 시간'만 줄이고 토끼 비율을 늘려서, 잘하는 사람일수록 최고점이 무한정 오르지 않게 해요. */
+const HARD=[{show:1,rab:.15},{show:.8,rab:.2},{show:.62,rab:.25},{show:.48,rab:.3}];
+function setLv(n){st.lv=Math.max(0,Math.min(3,n));st.maxlv=Math.max(st.maxlv,st.lv)}
 function spawn(fast){
-  if(holes.filter(h=>h.type).length>=(fast?4:3))return;
+  const H=HARD[st.lv];if(holes.filter(h=>h.type).length>=(fast?4:3))return;
   const free=holes.map((h,i)=>i).filter(i=>!holes[i].type);if(!free.length)return;
   const i=free[Math.floor(Math.random()*free.length)],h=holes[i],r=Math.random();
-  h.type=r<.15?'rab':r<.26?'hat':'car';
+  h.type=r<H.rab?'rab':r<H.rab+.11?'hat':'car';
   h.mask.innerHTML=h.type==='rab'?`<div class="it rab">${RAB_S}</div>`:`<div class="it"><img src="${h.type==='hat'?AV.santa:CARROTS[Math.floor(Math.random()*CARROTS.length)]}" alt=""></div>`;
   h.el.className='hole';void h.el.offsetWidth;h.el.classList.add('up');
-  h.timer=setTimeout(()=>hide(i),(h.type==='hat'?650:fast?720:950)*(0.9+Math.random()*0.2));
+  h.timer=setTimeout(()=>hide(i),(h.type==='hat'?650:fast?720:950)*H.show*(0.9+Math.random()*0.2));
 }
-function hide(i){const h=holes[i];if(!h.type)return;if(h.type!=='rab'&&st&&st.run){st.combo=0;$('combo').textContent='×0'}h.el.classList.remove('up');h.type=null;setTimeout(()=>{if(!holes[i].type)holes[i].mask.innerHTML=''},160)}
+function hide(i){const h=holes[i];if(!h.type)return;if(h.type!=='rab'&&st&&st.run){st.combo=0;$('combo').textContent='×0';setLv(st.lv-1)}h.el.classList.remove('up');h.type=null;setTimeout(()=>{if(!holes[i].type)holes[i].mask.innerHTML=''},160)}
 function fx(i,t,bad){const f=document.createElement('div');f.className='fx'+(bad?' bad':'');f.textContent=t;holes[i].el.appendChild(f);setTimeout(()=>f.remove(),620)}
 function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
 function tap(i){
   const h=holes[i];if(!st||!st.run||!h.type)return;clearTimeout(h.timer);
-  if(h.type==='rab'){st.score=Math.max(0,st.score-2);st.combo=0;st.rab++;h.mask.querySelector('.it').innerHTML=RAB_W;h.el.classList.add('bonk');fx(i,'깼다! −2',true);buzz(60)}
-  else{const add=h.type==='hat'?3:1;st.combo++;st.maxc=Math.max(st.maxc,st.combo);const bonus=st.combo%10===0?2:0;st.score+=add+bonus;h.type==='hat'?st.hat++:st.car++;h.el.classList.add('hit');fx(i,(add===3?'+3':'쏙! +1')+(bonus?' 🔥+2':''));buzz(15)}
+  if(h.type==='rab'){st.score=Math.max(0,st.score-2);st.combo=0;st.rab++;setLv(st.lv-1);h.mask.querySelector('.it').innerHTML=RAB_W;h.el.classList.add('bonk');fx(i,'깼다! −2',true);buzz(60)}
+  else{const add=h.type==='hat'?3:1;st.combo++;st.maxc=Math.max(st.maxc,st.combo);const bonus=st.combo%10===0?2:0;if(bonus)setLv(st.lv+1);st.score+=add+bonus;h.type==='hat'?st.hat++:st.car++;h.el.classList.add('hit');fx(i,(add===3?'+3':'쏙! +1')+(bonus?' 🔥+2':''));buzz(15)}
   $('score').textContent=st.score;$('combo').textContent='×'+st.combo;h.type=null;
   setTimeout(()=>{if(!holes[i].type){holes[i].el.className='hole';holes[i].mask.innerHTML=''}},260);
 }
@@ -517,6 +522,9 @@ async function submit(R){
 /* ===== 관리자 모드 ===== */
 const ATABS=[['in','참여 입력'],['pub','공개'],['award','시상 참고'],['kan','이번 주 칸'],['rules','온도 규칙'],['roster','명단'],['game','게임 기록']];
 let A=null,apw='',atab='in',aw=1,ac='',aState={};
+/* 셀별 명단 순서 = 보내 준 출석부 명단 순서. 나중에 추가된 사람은 맨 뒤에 붙어요 */
+const RORD={"준현셀":["백준현","이찬희","임진규","김수민","윤준영","김다은","연유정","박준석","박고은","박서준","이인규","김서진","이윤서","정시우","최현민","김예제","이강국"],"세윤셀":["이세윤","김시정","김지우","전소은","박승우","김유나","오찬웅","여수연","김재경","안서연","안성빈","정지현","박경현","강지효","김하진","한성민","노희수","박승민","임소연","지영은","서재민"],"진셀":["최진","유준혁","윤지현","이현","이제민","한채연","박준혁","한영주","서나경","이동주","송민수","김윤호","김효은","김동건","조혜윤","김준서"],"민철셀":["김민철","조은혜","한지현","남유진","이예지","임하영","박지민","함민아","정유경","박해준","서하영","배은우","안예람","손유은","윤창재","전윤","구나연","박주희"],"하람셀":["김하람","전가현","한수진","이지명","이혜원","김윤서","한이환","이태인","박경진","이수빈","김동규","김경훈","김시연","함윤아","권오성","김믿음","안정민","노정환","이하준"],"지우셀":["박지우","박서연","고다혁","천예슬","박주형","정성빈","김유빈","김휘소","박서현","조재현","이서현","송예림","이혜린","박승원","이예준","이현우"],"은비셀":["전은비","이환희","박태현","김태현","이정혁","신정원","전은지","최은서","강예찬","조민지","이연두","김나연","박성범","한상준","조민석"],"승현셀":["이승현","양승현","강지원","이상범","이하영","이주희","임정민","전시은","서지우","정윤채","김현서","강진우","백세진","강에녹","정지운","김신혜","박동우"],"현빈셀":["조현빈","김대희","이예찬","박서연","김민석","이준찬","이재용","안현웅","윤해인","김시후","김은빈","안하영","최성영","이성민","이정수","박동하","이교현"],"인영셀":["장인영","정형우","이평로","김도희","김송연","김찬영","이시은","김하연","김하준","사유림","이동하","김도현","유윤상","심창조","이형빈","이재우","박하온","김주연","김지훈"],"승찬셀":["이승찬","이시현","이동영","정예진","현세환","김주호","한예린","백시영","손연제","박시우","남호진","장재희","김시은","박성욱","윤현재","금보령","최원호"],"새가족셀":["오사랑","장영우","김예진","최지혜","박도현","정찬영","박재우","김혜민","이교성","정연우","김주연","박현우"]};
+const byOrd=(cell,L)=>{const o=RORD[cell]||[],k=n=>{const i=o.indexOf(n);return i<0?999:i};return L.map((r,i)=>[r,i]).sort((a,b)=>k(a[0].name)-k(b[0].name)||a[1]-b[1]).map(x=>x[0])};
 try{apw=sessionStorage.getItem('dg_apw')||''}catch(e){}
 const STATUSES=['활동','확인필요','미출석(10~11월)','제외-군대','제외-해외·유학'];
 async function apost(action,extra){if(DEMO)return demoAdmin(action,extra||{});const r=await fetch(CONFIG.API,{method:'POST',body:JSON.stringify(Object.assign({action,pw:apw},extra||{}))});return r.json()}
@@ -544,22 +552,32 @@ async function saveDo(btn,action,extra,okMsg){btn.disabled=true;const t=btn.text
   if(r.ok){await aload();toast(okMsg);reload().then(()=>{renderRank();renderCell()});renderAdmin()}else{btn.disabled=false;btn.textContent=t;toast(r.reason==='exists'?'이미 있는 이름이에요':'저장하지 못했어요')}}
 
 function admIn(){
-  const mem=A.roster.filter(r=>r.cell===ac&&['활동','확인필요'].includes(r.status));
+  const mem=byOrd(ac,A.roster.filter(r=>r.cell===ac&&['활동','확인필요'].includes(r.status)));let dirty=false;
   const rec=A.rec[aw+'|'+ac]||[0,0];
   const cur={};mem.forEach(m=>cur[m.name]=(A.part[aw+'|'+ac+'|'+m.name]||[false,false,false]).slice());
   let h=`<div class="card"><h3>어느 주차, 어느 셀?</h3>${weekChips(aw,'iw')}${cellChips(ac,'ic')}</div>
    <div class="card mt"><div class="row sp"><h3>${aw}주차 · ${esc(ac)}</h3><span class="sub" id="icnt"></span></div>
+   <input id="isq" class="isq" placeholder="이름 검색 (모든 셀)" autocomplete="off"><div id="isx"></div>
    <div class="row" style="justify-content:flex-end;gap:6px;font-size:11px;color:var(--sub);font-weight:700"><span style="width:52px;text-align:center">골방(목)</span><span style="width:52px;text-align:center">금요(금)</span><span style="width:52px;text-align:center">${aw===2?'태신자':'셀모임'}</span></div>
-   ${mem.map((m,i)=>`<div class="mrow"><span class="nm">${esc(m.name)}${m.status==='확인필요'?' <span class="sub">확인필요</span>':''}</span>${[0,1,2].map(j=>`<button class="tg ${cur[m.name][j]?'on':''}" data-i="${i}" data-j="${j}">${cur[m.name][j]?'✓':'–'}</button>`).join('')}</div>`).join('')||'<div class="sub">활동 중인 셀원이 없어요. 명단 탭에서 추가해 주세요.</div>'}
+   ${mem.map((m,i)=>`<div class="mrow" data-n="${esc(m.name)}"><span class="nm">${esc(m.name)}${m.status==='확인필요'?' <span class="sub">확인필요</span>':''}</span>${[0,1,2].map(j=>`<button class="tg ${cur[m.name][j]?'on':''}" data-i="${i}" data-j="${j}">${cur[m.name][j]?'✓':'–'}</button>`).join('')}</div>`).join('')||'<div class="sub">활동 중인 셀원이 없어요. 명단 탭에서 추가해 주세요.</div>'}
    <div class="num"><label>태신자 작정 카드(장)<input id="ipl" type="number" inputmode="numeric" min="0" value="${rec[0]}"></label><label>태신자 초청(명)<input id="iiv" type="number" inputmode="numeric" min="0" value="${rec[1]}"></label></div>
    <div class="sub" style="margin-top:6px">이 주차에 새로 생긴 수만 넣어요. 누적은 자동으로 계산돼요.</div>
    <button class="btn" id="isave">${aw}주차 ${esc(ac)} 저장</button>
    <div class="sub" style="margin-top:8px">저장만으로는 사이트에 안 보여요. '공개' 탭에서 공개 주차를 올려야 보여요.</div></div>`;
   $('abody').innerHTML=h;
   const cnt=()=>{const t=[0,0,0];mem.forEach(m=>cur[m.name].forEach((v,j)=>t[j]+=v?1:0));$('icnt').textContent=`골방 ${t[0]} · 금요 ${t[1]} · ${aw===2?'태신자':'셀모임'} ${t[2]}`};cnt();
-  $('abody').querySelectorAll('.tg').forEach(b=>b.onclick=()=>{const m=mem[+b.dataset.i],j=+b.dataset.j;cur[m.name][j]=!cur[m.name][j];b.classList.toggle('on');b.textContent=cur[m.name][j]?'✓':'–';cnt()});
-  bindChips('iw',w=>{aw=w;admIn()});bindChips('ic',c=>{ac=c;admIn()});
-  $('isave').onclick=e=>saveDo(e.target,'admin_save_part',{week:aw,cell:ac,rows:mem.map(m=>({name:m.name,g:cur[m.name][0],f:cur[m.name][1],s:cur[m.name][2]})),pledge:Math.max(0,+$('ipl').value||0),invite:Math.max(0,+$('iiv').value||0)},`${aw}주차 ${ac} 저장했어요`);
+  $('abody').querySelectorAll('.tg').forEach(b=>b.onclick=()=>{const m=mem[+b.dataset.i],j=+b.dataset.j;cur[m.name][j]=!cur[m.name][j];dirty=true;b.classList.toggle('on');b.textContent=cur[m.name][j]?'✓':'–';cnt()});
+  const leave=()=>!dirty||confirm('저장하지 않은 체크가 있어요. 이동할까요?');
+  bindChips('iw',w=>{if(!leave())return;aw=w;admIn()});bindChips('ic',c=>{if(!leave())return;ac=c;admIn()});
+  const q=$('isq'),x=$('isx');
+  q.oninput=()=>{const v=q.value.replace(/\s/g,'');let hit=0;
+    $('abody').querySelectorAll('.mrow[data-n]').forEach(r=>{const ok=!v||r.dataset.n.includes(v);r.style.display=ok?'':'none';if(ok)hit++});
+    const other=v?A.roster.filter(r=>r.cell!==ac&&r.name.includes(v)&&['활동','확인필요'].includes(r.status)):[];
+    x.innerHTML=(v&&!hit&&!other.length?'<div class="sub" style="padding:8px 0">이 이름을 찾지 못했어요. 명단 탭에서 추가할 수 있어요.</div>':'')+
+      (other.length?'<div class="sub" style="padding:8px 0 2px">다른 셀에 있어요 · 누르면 그 셀로 이동해요</div><div class="chipsel">'+other.slice(0,6).map(r=>`<button data-c="${esc(r.cell)}" data-n="${esc(r.name)}">${esc(r.name)} · ${esc(r.cell)}</button>`).join('')+'</div>':'');
+    x.querySelectorAll('button').forEach(b=>b.onclick=()=>{if(!leave())return;ac=b.dataset.c;aState.q=b.dataset.n;admIn()})};
+  if(aState.q){q.value=aState.q;aState.q='';q.oninput()}
+  $('isave').onclick=e=>(dirty=false,saveDo)(e.target,'admin_save_part',{week:aw,cell:ac,rows:mem.map(m=>({name:m.name,g:cur[m.name][0],f:cur[m.name][1],s:cur[m.name][2]})),pledge:Math.max(0,+$('ipl').value||0),invite:Math.max(0,+$('iiv').value||0)},`${aw}주차 ${ac} 저장했어요`);
 }
 function admPub(){
   const W=A.rules.week;
@@ -615,7 +633,7 @@ function admRules(){
   $('rsave').onclick=e=>{const b=e.target;if(!b.dataset.sure){b.dataset.sure=1;b.textContent='한 번 더 누르면 저장';return}saveDo(b,'admin_save_rules',{rules:R,bases:B},'규칙을 저장했어요').then(()=>{aState.r=null;aState.b=null})};
 }
 function admRoster(){
-  const L=A.roster.filter(r=>r.cell===ac);
+  const L=byOrd(ac,A.roster.filter(r=>r.cell===ac));
   $('abody').innerHTML=`<div class="card"><h3>셀 고르기</h3>${cellChips(ac,'rc')}</div>
    <div class="card mt"><h3>새 셀원 추가 · ${esc(ac)}</h3><div class="fld"><label>이름 (실명)<input id="nn" maxlength="10" placeholder="홍길동"></label><label>또래<input id="na" maxlength="4" inputmode="numeric" placeholder="03"></label></div><button class="btn" id="nadd">${esc(ac)}에 추가</button>
    <div class="sub" style="margin-top:6px">추가하면 '활동'으로 등록되고, 참여 입력 체크리스트와 게임 이름 검색에 바로 나와요.</div></div>
