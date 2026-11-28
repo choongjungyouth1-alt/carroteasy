@@ -524,7 +524,7 @@ function renderReg(R,srv){
     return;
   }
   el.innerHTML=`<h2 style="font-size:16px">랭킹에 이름 올리기</h2><div class="sub" style="line-height:1.5;margin-top:4px">청년부 명단에 있는 <b>실명</b>으로만 등록돼요. 이름을 두 글자 이상 검색해 골라 주세요.</div>
-    <input id="q" type="search" placeholder="이름 검색 (예: 이승찬)" autocomplete="off" enterkeyhint="search"><div id="hits" style="margin-top:6px;max-height:200px;overflow:auto"></div>
+    <input id="q" type="search" placeholder="이름 검색 (예: 이세윤)" autocomplete="off" enterkeyhint="search"><div id="hits" style="margin-top:6px;max-height:200px;overflow:auto"></div>
     <button class="btn" id="regbtn" style="display:none"></button><div class="sub" style="margin-top:8px">닉네임은 등록할 수 없어요.</div>`;
   let pick=null,timer=0,seq=0;
   $('q').addEventListener('input',e=>{clearTimeout(timer);pick=null;$('regbtn').style.display='none';const v=e.target.value.replace(/\s/g,'');
@@ -589,7 +589,7 @@ function renderMy(){
   if(!me||pv==='search'){
     h+=`<div class="pp-ttl"><h2>내 당근이</h2><span class="sub">한 번 선택하면 기억해요</span></div>
       <div class="card mt reg" style="text-align:center"><img src="${FACE.basic}" style="width:76px;height:76px;object-fit:contain" alt=""><h2 style="font-size:17px;margin-top:4px">내 이름을 검색해 주세요</h2><div class="sub">내 당근이를 찾으면 표정 퀘스트가 시작돼요</div>
-      <input id="pq" type="search" placeholder="실명 두 글자 이상 (예: 이승찬)" autocomplete="off" enterkeyhint="search"><div id="phits" style="margin-top:6px;text-align:left"></div></div>`;
+      <input id="pq" type="search" placeholder="실명 두 글자 이상 (예: 이세윤)" autocomplete="off" enterkeyhint="search"><div id="phits" style="margin-top:6px;text-align:left"></div></div>`;
     el.innerHTML=h;
     $('ppback').onclick=()=>{pv='main';afterPick=null;renderPeople()};
     let timer=0,seq=0;
