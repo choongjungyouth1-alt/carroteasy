@@ -575,7 +575,7 @@ function renderPeople(){
      <button class="btn" id="praybtn" style="${sent?'background:#E9E1D6;color:var(--sub)':''}">${sent?'오늘의 기도 당근을 보냈어요':'오늘의 기도 당근 보내기'}</button></div>`;
   const tops=P.top||[];
   h+=`<div class="card mt"><div class="row sp"><b style="font-size:15px">지금 가장 꾸준한 당근이</b><span class="sub">이름은 비밀! 나중에 공개돼요</span></div>`+
-     (tops.length?`<div class="pp-t3">${tops.map(t=>`<div><img src="${FACE[t.face]||FACE.basic}" alt=""><b>×${t.c}</b><small>${1+tops.filter(x=>x.c>t.c).length}위 당근이</small></div>`).join('')}</div><div class="sub" style="margin-top:8px">콤보 = 주일 → 목 골방 → 금 성치회 순서로 한 번도 안 빠지고 이어 간 미션 수</div>`
+     (tops.length?`<div class="pp-t3">${tops.map(t=>`<div><img src="${FACE[t.face]||FACE.basic}" alt=""><b>×${t.c}</b><small>${1+tops.filter(x=>x.c>t.c).length}위 당근이</small></div>`).join('')}</div><div class="sub" style="margin-top:8px">주일 예배, 목요일 기도의 골방, 금요 성치회를 모두 참석했어요.</div>`
        :'<div class="empty mt">첫 주 기록이 공개되면 나타나요</div>')+'</div>';
   const st2=myP?pStats(myP.weeks,myP.lw):null;
   h+=`<button class="pp-link" id="tomy"><img src="${st2?FACE[st2.face]:FACE.basic}" alt=""><span style="flex:1">내 당근이 보기${me?` <span class="sub" style="font-weight:700">· ${esc(me.name)}</span>`:''}</span><b style="color:var(--org)">›</b></button>`;
