@@ -266,7 +266,9 @@ const CHAMP = `<svg viewBox="-6 0 132 120" xmlns="http://www.w3.org/2000/svg"><d
 const HATNAME = {base:'기본',earmuff:'귀마개',scarf:'목도리',santa:'산타 모자',halo:'천사 링',beanie:'비니',antler:'루돌프 뿔'};
 const WEEK_DATES = ['11/22','11/29','12/6','12/13','12/20'];
 const M3 = w => w===2 ? '태신자 작성 (셀모임)' : '주일예배·셀모임';
-const BURN_RANGE = '12/7–12/13';
+const BURN_RANGE = '12/13–12/19';
+/* 공개는 '끝난 주의 결과'예요. 주차는 일~토, 매주 토요일 밤에 그 주 결과를 공개해요 */
+const WEEK_END = ['11/28','12/5','12/12','12/19','12/20'];
 const $ = id => document.getElementById(id);
 const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const store = {get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}}, set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
@@ -342,9 +344,8 @@ const snap = t => t >= 100 ? 100 : 36.5 + 2 * kanOf(t);
 function normalize(){D.cells.forEach(c=>{if(c.raw!=null)return;c.raw=c.temp;c.kan=kanOf(c.temp);c.toNext=c.kan>=32?0:Math.round((Math.min(100,36.5+2*(c.kan+1))-c.temp)*10)/10;
   c.temp=snap(c.raw);c.prev=snap(c.prev);c.weeks=(c.weeks||[]).map(snap);c.delta=Math.round((c.temp-c.prev)*10)/10;c.dk=c.kan-kanOf(c.prev)})}
 const cellOf = n => D.cells.find(c => c.name === n);
-/* 같은 온도(공동 순위)일 때 뒤로 보낼 셀 — 동점이면 이 셀이 양보해요. 비우면 명단 순서대로 */
-const TIE_LAST=['세윤셀'];
-function ranked(key){const t=c=>TIE_LAST.includes(c.name)?1:0;return D.cells.map((c,i)=>[c,i]).sort((a,b)=>b[0][key]-a[0][key]||t(a[0])-t(b[0])||a[1]-b[1]).map(x=>x[0])}
+/* 같은 온도(공동 순위)일 때는 셀 이름 가나다순 */
+function ranked(key){return D.cells.slice().sort((a,b)=>b[key]-a[key]||a.name.localeCompare(b.name,'ko'))}
 /* 같은 온도면 같은 순위 (1, 1, 3 …) */
 function rankMap(){const now={},prev={};D.cells.forEach(c=>{now[c.name]=1+D.cells.filter(x=>x.temp>c.temp).length;prev[c.name]=1+D.cells.filter(x=>x.prev>c.prev).length});return{now,prev}}
 const avatar = c => AV[c.hat] || AV.base;
@@ -355,8 +356,8 @@ function weekBar(){
 }
 function phaseBanner(){
   const w=D.week,b=D.burnWeek;
-  if(w===b-1) return `<div class="banner"><span style="font-size:20px">🔥</span><div><b>다음 주는 버닝 주간!</b><br>${BURN_RANGE} 참여는 온도가 두 배로 올라요</div></div>`;
-  if(w===b) return `<div class="banner"><span style="font-size:20px">🔥</span><div><b>버닝 주간 진행 중</b><br>이번 주 참여는 온도가 두 배로 올라요</div></div>`;
+  if(w===b-1) return `<div class="banner"><span style="font-size:20px">🔥</span><div><b>이번 주는 버닝 주간!</b><br>${BURN_RANGE} 기도의 골방·금요성회 참여는 온도가 두 배로 올라요</div></div>`;
+  if(w===b) return `<div class="banner"><span style="font-size:20px">🔥</span><div><b>버닝 주간 결과가 반영됐어요!</b><br>기도의 골방·금요성회 참여가 두 배로 올랐어요</div></div>`;
   if(w===5) return `<div class="banner"><span style="font-size:20px">🎉</span><div><b>고백데이! 모든 셀이 100°C에 도착했어요</b><br>함께 끓어오른 5주, 수고했어요</div></div>`;
   return '';
 }
@@ -377,7 +378,7 @@ function renderRank(){
     h+=`<button class="card teaser" id="teaser"><img src="${CARROTS[4]}" alt=""><div><div style="font-size:14px;font-weight:850">당근 뽑기 ${g?'1위 · '+esc(g.name)+' '+g.score+'개':'· 첫 기록에 도전!'}</div><div class="sub">30초 동안 당근을 뽑아 기록을 세워요</div></div><span class="go">도전 ›</span></button>`;
     h+='<div class="list">'+L.slice(3).map((c,i)=>{const n=R.now[c.name],mv=R.prev[c.name]-n;const pct=Math.max(0,Math.min(100,(c.temp-36.5)/63.5*100));
       return `<button class="li ${c.name===myCell?'mine':''}" data-cell="${esc(c.name)}"><div class="rk">${n}<span class="mv ${mv>0?'up':'dn'}">${mv>0?'▲'+mv:''}</span></div><img src="${avatar(c)}" alt="">
-      <div class="bd"><div class="row sp"><b style="font-size:14px">${esc(c.name)}</b><b style="color:var(--org)">${c.temp.toFixed(1)}°C</b></div><div class="bar"><i style="width:${pct}%"></i></div><div style="text-align:right;font-size:10.5px;font-weight:700;color:var(--org)">이번 주 +${c.delta}°C · ${c.dk}칸</div></div></button>`}).join('')+'</div>';
+      <div class="bd"><div class="row sp"><b style="font-size:14px">${esc(c.name)}</b><b style="color:var(--org)">${c.temp.toFixed(1)}°C</b></div><div class="bar"><i style="width:${pct}%"></i></div><div style="text-align:right;font-size:10.5px;font-weight:700;color:var(--org)">${D.week}주차 +${c.delta}°C · ${c.dk}칸</div></div></button>`}).join('')+'</div>';
   }
   if(DEMO) h+='<p class="demo">예시 데이터로 보이는 화면이에요</p>';
   el.innerHTML=h;
@@ -403,7 +404,7 @@ function renderCell(){
   h+=`<div class="hero mt"><div class="hill"></div><img class="av" src="${avatar(c)}" alt=""><div class="tube"><i style="height:${pct}%"></i></div><div class="bulb" style="font-size:${c.temp>=100?21:17}px">${c.temp>=100?100:c.temp.toFixed(1)}°</div>
      <div class="tick" style="top:24px">100°</div><div class="tick" style="top:${30+180*(1-(68.5-36.5)/63.5)-8}px">68.5°</div></div>`;
   h+=`<div class="card mt row"><div style="flex:1"><div class="sub" style="font-weight:700">${esc(c.name)} · 전체 ${R.now[c.name]}위</div><div class="big">${c.temp.toFixed(1)}°C</div>
-     <div class="sub">이번 주 <b style="color:var(--org)">+${c.delta}°C (${c.dk}칸)</b></div><div class="sub">${c.kan>=32?'포스터 32번 꼭대기까지 완성!':`포스터 <b style="color:var(--ink)">${c.kan}번 칸</b>까지 · 다음 칸까지 ${c.toNext}°C`}</div></div>
+     <div class="sub">${D.week}주차 <b style="color:var(--org)">+${c.delta}°C (${c.dk}칸)</b></div><div class="sub">${c.kan>=32?'포스터 32번 꼭대기까지 완성!':`포스터 <b style="color:var(--ink)">${c.kan}번 칸</b>까지 · 다음 칸까지 ${c.toNext}°C`}</div></div>
      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><span class="pill">태신자 작정 ${c.pledge}</span><span class="pill">초청 ${c.invite}</span></div></div>`;
   h+=`<div class="card mt"><b style="font-size:14px">주차별 온도</b><div class="wbars">`+[1,2,3,4,5].map(w=>{const t=c.weeks[w-1];
      return t!=null?`<div class="wb"><b>${t>=100?100:t.toFixed(1)}°</b><div class="col"><i class="${w===D.week?'now':''}" style="height:${Math.max(4,(t-36.5)/63.5*72)}px"></i></div><small>${w}주</small></div>`
@@ -826,7 +827,7 @@ navB.forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(i===2&&viewCell!==myCell&
 let sT=0;pager.addEventListener('scroll',()=>{clearTimeout(sT);sT=setTimeout(()=>{const i=Math.round(pager.scrollLeft/pager.clientWidth);navB.forEach((b,k)=>b.classList.toggle('on',k===i))},60)});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&st&&st.run){st.run=false;cancelAnimationFrame(raf);$('pager').classList.remove('lock');$('nav').classList.remove('lock');renderLobby()}});
 
-async function reload(){try{D=await api('data');normalize();$('chip').textContent=`${D.week}주차 · ${WEEK_DATES[D.week-1]} 기준`}catch(e){if(!D)$('chip').textContent='연결 안 됨'}}
+async function reload(){try{D=await api('data');normalize();$('chip').textContent=D.week>=5?'고백데이 · 12/20':`${D.week}주차 결과 · ${WEEK_END[D.week-1]}까지`}catch(e){if(!D)$('chip').textContent='연결 안 됨'}}
 (async()=>{
   await reload();
   if(!D){$('p0').innerHTML='<div class="empty">데이터를 불러오지 못했어요.<br>잠시 후 다시 열어 주세요.</div>';return}
